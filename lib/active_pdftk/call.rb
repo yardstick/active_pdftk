@@ -185,18 +185,15 @@ module ActivePdftk
       args = set_cmd(dsl_statements)
       args.unshift(@default_statements[:path])
       Open3.popen3(*args) do |stdin, stdout, stderr|
-        begin
-          if @input
-            @input.rewind
-            stdin.puts @input.read
-          end
-          stdin.close
-          @output.puts stdout.read if @output && !@output.is_a?(String)
-          raise(CommandError, {:stderr => @error, :cmd => args.join(' ')}) unless (@error = stderr.read).empty?
-        ensure
-          stdin.close unless stdin.closed?
-          stdout.close unless stdout.closed?
-          stderr.close unless stderr.closed?
+        if @input.respond_to?(:rewind) && @input.respond_to?(:read)
+          @input.rewind
+          stdin.write(@input.read)
+        end
+        stdin.close
+        @output.write(stdout.read) if @output.respond_to?(:write)
+        @error = stderr.read
+        unless @error.empty?
+          raise(CommandError, {:stderr => @error, :cmd => args.join(' ')})
         end
       end
       @output
