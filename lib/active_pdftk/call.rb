@@ -184,6 +184,7 @@ module ActivePdftk
       dsl_statements = @default_statements.merge(dsl_statements)
       args = set_cmd(dsl_statements)
       args.unshift(@default_statements[:path])
+      args.push('dont_ask')
       Open3.popen3(*args) do |stdin, stdout, stderr|
         if @input.respond_to?(:rewind) && @input.respond_to?(:read)
           @input.rewind
