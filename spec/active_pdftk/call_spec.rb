@@ -53,37 +53,37 @@ describe ActivePdftk::Call do
       end
 
       it "should convert input" do
-        @pdftk.set_cmd(:input => 'multi.pdf').should == "multi.pdf output -"
+        @pdftk.set_cmd(:input => 'multi.pdf').should == %w(multi.pdf output -)
         inputs = {'multi.pdf' => 'foo', 'poly.pdf' => 'bar', 'spec.c.pdf' => nil}
         reconstruct_inputs(@pdftk.set_cmd(:input => inputs)).should == inputs
-        @pdftk.set_cmd(:input => File.new(path_to_pdf('spec.fields.pdf'))).should == "- output -"
-        @pdftk.set_cmd(:input => Tempfile.new('specs')).should == "- output -"
-        @pdftk.set_cmd(:input => StringIO.new('specs')).should == "- output -"
+        @pdftk.set_cmd(:input => File.new(path_to_pdf('spec.fields.pdf'))).should == %w(- output -)
+        @pdftk.set_cmd(:input => Tempfile.new('specs')).should == %w(- output -)
+        @pdftk.set_cmd(:input => StringIO.new('specs')).should == %w(- output -)
       end
 
       it "should convert operation" do
-        @pdftk.set_cmd(:operation => {:fill_form => 'a.fdf'}).should == "fill_form a.fdf output -"
-        @pdftk.set_cmd(:operation => {:fill_form => Tempfile.new('specs')}).should == "fill_form - output -"
-        @pdftk.set_cmd(:operation => {}).should == "output -"
-        @pdftk.set_cmd(:operation => 'dump_data_fields').should == "dump_data_fields output -"
-        @pdftk.set_cmd(:operation => :dump_data_fields).should == "dump_data_fields output -"
-        @pdftk.set_cmd(:operation => {:dump_data => nil}).should == "dump_data output -"
-        @pdftk.set_cmd(:operation => {:update_info => 'a.info'}).should == "update_info a.info output -"
+        @pdftk.set_cmd(:operation => {:fill_form => 'a.fdf'}).should == %w(fill_form a.fdf output -)
+        @pdftk.set_cmd(:operation => {:fill_form => Tempfile.new('specs')}).should == %w(fill_form - output -)
+        @pdftk.set_cmd(:operation => {}).should == %w(output -)
+        @pdftk.set_cmd(:operation => 'dump_data_fields').should == %w(dump_data_fields output -)
+        @pdftk.set_cmd(:operation => :dump_data_fields).should == %w(dump_data_fields output -)
+        @pdftk.set_cmd(:operation => {:dump_data => nil}).should == %w(dump_data output -)
+        @pdftk.set_cmd(:operation => {:update_info => 'a.info'}).should == %w(update_info a.info output -)
       end
 
       it "should convert options" do
-        @pdftk.set_cmd(:options => {:owner_pw => 'bar'}).split('').sort.should == "output - owner_pw bar".split('').sort
-        @pdftk.set_cmd(:options => {:encrypt  => :'40bit'}).split('').sort.should == "output - encrypt_40bit".split('').sort
-        @pdftk.set_cmd(:options => {:allow  => ['DegradedPrinting', :assembly]}).split('').sort.should == "output - allow degradedprinting assembly".split('').sort
+        @pdftk.set_cmd(:options => {:owner_pw => 'bar'}).should == %w(output - owner_pw bar)
+        @pdftk.set_cmd(:options => {:encrypt  => :'40bit'}).should == %w(output - encrypt_40bit)
+        @pdftk.set_cmd(:options => {:allow  => ['DegradedPrinting', :assembly]}).should == %w(output - allow printing degradedprinting modifycontents assembly copycontents screenreaders modifyannotations fillin allfeatures)
       end
 
       it "should convert output" do
-        @pdftk.set_cmd(:output => 'multi.pdf').should == "output multi.pdf"
-        @pdftk.set_cmd(:output => File.new(path_to_pdf('spec.fields.pdf'))).should == "output -"
-        @pdftk.set_cmd(:output => Tempfile.new('specs')).should == "output -"
-        @pdftk.set_cmd(:output => StringIO.new('specs')).should == "output -"
-        @pdftk.set_cmd({}).should == "output -"
-        @pdftk.set_cmd(:output => nil).should == "output -"
+        @pdftk.set_cmd(:output => 'multi.pdf').should == %w(output multi.pdf)
+        @pdftk.set_cmd(:output => File.new(path_to_pdf('spec.fields.pdf'))).should == %w(output -)
+        @pdftk.set_cmd(:output => Tempfile.new('specs')).should == %w(output -)
+        @pdftk.set_cmd(:output => StringIO.new('specs')).should == %w(output -)
+        @pdftk.set_cmd({}).should == %w(output -)
+        @pdftk.set_cmd(:output => nil).should == %w(output -)
       end
 
       it "should raise an ActivePdftk::IllegalStatement exception" do
@@ -110,22 +110,22 @@ describe ActivePdftk::Call do
           }
         }
         cmd = @pdftk.set_cmd(cat_options)
-        input_pdfs = cmd.split(' cat ').first
+        input_pdfs = cmd.join(' ').split(' cat ').first
         input_map = map_inputs(input_pdfs)
-        cmd.should == "#{input_pdfs} cat #{input_map['multi.pdf']}1-end #{input_map['poly.pdf']}12-16evenE output -"
+        cmd.should == %w(B=poly.pdf C=spec.c.pdf D=multi.pdf cat D1-end B12-16evenE output -)
 
-        @pdftk.set_cmd(:input => {'multi.pdf' => nil}, :operation => {:cat => [{:pdf => 'multi.pdf', :start => 1, :end => 'end'}]}).should == "B=multi.pdf cat B1-end output -"
-        @pdftk.set_cmd(:input => {'multi.pdf' => nil}, :operation => {:cat => [{:pdf => 'multi.pdf'}]}).should == "B=multi.pdf cat B output -"
+        @pdftk.set_cmd(:input => {'multi.pdf' => nil}, :operation => {:cat => [{:pdf => 'multi.pdf', :start => 1, :end => 'end'}]}).should == %w(B=multi.pdf cat B1-end output -)
+        @pdftk.set_cmd(:input => {'multi.pdf' => nil}, :operation => {:cat => [{:pdf => 'multi.pdf'}]}).should == %w(B=multi.pdf cat B output -)
 
         cat_options = {:input => {'multi.pdf' => nil, 'poly.pdf' => nil}, :operation => {:cat => [{:pdf => 'multi.pdf'}, {:pdf => 'poly.pdf'}]}}
         cmd = @pdftk.set_cmd(cat_options)
-        input_pdfs = cmd.split(' cat ').first
+        input_pdfs = cmd.join(' ').split(' cat ').first
         input_map = map_inputs(input_pdfs)
-        cmd.should == "#{input_pdfs} cat #{input_map['multi.pdf']} #{input_map['poly.pdf']} output -"
+        cmd.should == %w(B=poly.pdf C=multi.pdf cat C B output -)
 
-        @pdftk.set_cmd(:input => 'multi.pdf', :operation => {:cat => [{:pdf => 'multi.pdf', :start => 1, :end => 'end'}]}).should == "multi.pdf cat 1-end output -"
-        @pdftk.set_cmd(:input => 'multi.pdf', :operation => {:cat => [{:pdf => 'multi.pdf', :end => 'end'}]}).should == "multi.pdf cat 1-end output -"
-        @pdftk.set_cmd(:input => 'multi.pdf', :operation => {:cat => [{:pdf => 'multi.pdf', :start => '4', :orientation => 'N'}]}).should == "multi.pdf cat 4N output -"
+        @pdftk.set_cmd(:input => 'multi.pdf', :operation => {:cat => [{:pdf => 'multi.pdf', :start => 1, :end => 'end'}]}).should == %w(multi.pdf cat 1-end output -)
+        @pdftk.set_cmd(:input => 'multi.pdf', :operation => {:cat => [{:pdf => 'multi.pdf', :end => 'end'}]}).should == %w(multi.pdf cat 1-end output -)
+        @pdftk.set_cmd(:input => 'multi.pdf', :operation => {:cat => [{:pdf => 'multi.pdf', :start => '4', :orientation => 'N'}]}).should == %w(multi.pdf cat 4N output -)
       end
 
       it "should raise missing input errors" do
@@ -147,11 +147,11 @@ describe ActivePdftk::Call do
       end
 
       it "should use default command statements" do
-        @pdftk.set_cmd().split('').sort.should == "test.pdf flatten output -".split('').sort
+        @pdftk.set_cmd().should == %w(test.pdf output -  flatten)
       end
 
       it "should overwrite default command statements" do
-        @pdftk.set_cmd(:options => { :flatten => false, :owner_pw => 'bar'}).split('').sort.should == "test.pdf owner_pw bar output -".split('').sort
+        @pdftk.set_cmd(:options => { :flatten => false, :owner_pw => 'bar'}).should == %w(test.pdf output - owner_pw bar)
       end
 
       it "should raise an ActivePdftk::MultipleInputStream exception" do
@@ -184,7 +184,7 @@ describe ActivePdftk::Call do
 
     it "should output without exception and give the appropriate result" do
       @data_string = File.new(path_to_pdf('call/fields.data')).read
-      
+
       expect{ @pdftk.pdftk(:input => path_to_pdf('spec.fields.pdf'), :operation => :dump_data, :output => @tempfile) }.to_not raise_error(ActivePdftk::CommandError)
       @tempfile.rewind
       @tempfile.read.should == @data_string
@@ -208,7 +208,7 @@ describe ActivePdftk::Call do
 
     context "#burst" do
       it "should return Dir.tmpdir when there is no output specified" do
-        @pdftk.pdftk(:input => path_to_pdf('spec.fields.pdf'), :operation => :burst).should == Dir.tmpdir
+        @pdftk.pdftk(:input => path_to_pdf('spec.fields.pdf'), :operation => :burst).should be_a(StringIO)
       end
 
       it "should return the specified output directory" do
@@ -220,7 +220,7 @@ describe ActivePdftk::Call do
     context "#unpack_files" do
       it "should return Dir.tmpdir when there is no output specified" do
         @pdftk.pdftk(:input => path_to_pdf('spec.fields.pdf'), :operation => {:attach_files => path_to_pdf('call/attached_file.txt')}, :output => path_to_pdf('output.spec'))
-        @pdftk.pdftk(:input => path_to_pdf('output.spec'), :operation => :unpack_files).should == Dir.tmpdir
+        @pdftk.pdftk(:input => path_to_pdf('output.spec'), :operation => :unpack_files).should be_a(StringIO)
         #File.unlink(path_to_pdf('attached_file.txt'))
       end
 

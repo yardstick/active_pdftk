@@ -182,24 +182,24 @@ module ActivePdftk
     #
     def pdftk(dsl_statements = {})
       dsl_statements = @default_statements.merge(dsl_statements)
-      cmd = "#{@default_statements[:path]} #{set_cmd(dsl_statements)}"
-      if dsl_statements[:operation].to_s.match(/burst|unpack_files/)
-        cmd.insert(0, "cd #{Dir.tmpdir} && ")
-      end
-      Open3.popen3(cmd) do |stdin, stdout, stderr|
-        if @input
-          @input.rewind
-          stdin.puts @input.read
+      args = set_cmd(dsl_statements)
+      args.unshift(@default_statements[:path])
+      Open3.popen3(*args) do |stdin, stdout, stderr|
+        begin
+          if @input
+            @input.rewind
+            stdin.puts @input.read
+          end
+          stdin.close
+          @output.puts stdout.read if @output && !@output.is_a?(String)
+          raise(CommandError, {:stderr => @error, :cmd => args.join(' ')}) unless (@error = stderr.read).empty?
+        ensure
+          stdin.close unless stdin.closed?
+          stdout.close unless stdout.closed?
+          stderr.close unless stderr.closed?
         end
-        stdin.close
-        @output.puts stdout.read if @output && !@output.is_a?(String)
-        raise(CommandError, {:stderr => @error, :cmd => cmd}) unless (@error = stderr.read).empty?
       end
-      if dsl_statements[:operation].to_s.match(/burst|unpack_files/) && dsl_statements[:output].nil?
-        Dir.tmpdir
-      else
-        @output
-      end
+      @output
     end
 
     # this hash represent order of parts in the command line.
@@ -267,8 +267,7 @@ module ActivePdftk
           when :output then build_output(dsl_statements[part])
           when :options then build_options(PDFTK_MAPPING[part], dsl_statements[part])
         end
-      end.flatten.compact.join(' ').squeeze(' ').strip
-      #TODO check if Array#shelljoin will do a better job.
+      end.flatten.compact
     end
 
     # Check if xfdf is supported by the current pdftk library
@@ -343,7 +342,7 @@ module ActivePdftk
         out.first << "-"
         @input ? raise(MultipleInputStream) : (@input = args)
       end
-      (out.last.empty? ? out.first : out.flatten).join(' ')
+      (out.last.empty? ? out.first : out.flatten)
     end
 
     # Prepare the operation part of the command line string
@@ -372,20 +371,20 @@ module ActivePdftk
         elsif operation.last.collect{|h| h[:pdf]}.uniq.size > 1 && (@input_file_map.nil? || @input_file_map.empty?)
           raise MissingInput
         else
-          ops = operation.last.collect {|range| build_range_option(range)}.join(' ')
-          "#{operation.first} #{ops}"
+          ops = operation.last.collect {|range| build_range_option(range)}
+          [operation.first.to_s] + ops
         end
       else
         case operation.last
         when NilClass
-          "#{operation.first}"
+          operation.first.to_s if operation.first
         when String, Symbol
-          "#{operation.first} #{operation.last}"
+          [operation.first.to_s, operation.last.to_s]
         when File, Tempfile, StringIO
           @input ? raise(MultipleInputStream) : (@input = operation.last)
-          "#{operation.first} -"
+          [operation.first.to_s, '-']
         when Array
-          "#{operation.first} #{operation.last.join(' ')}"
+          operation.flatten.map { |o| o.to_s }
         end
       end
     end
@@ -406,16 +405,14 @@ module ActivePdftk
         when NilClass
           @output = StringIO.new
           unless [:burst, :unpack_files].include?(@operation_name)
-            "output -"
-          else
-            ""
+            %w(output -)
           end
         when String
           @output = value
-          "output #{value}"
+          ['output', value]
         when File, Tempfile, StringIO
           @output = value
-          "output -"
+          %w(output -)
       end
     end
 
@@ -435,11 +432,11 @@ module ActivePdftk
         check_statement(abilities, option)
         case current = abilities[option.to_sym]
         when String
-          "#{current} #{value}"
+          [current, value]
         when Hash
-          "#{current[value]}"
+          "#{current[value]}" if current[value]
         when Array
-          "#{option} #{current.collect{|i| i.to_s.downcase} && value.collect{|i| i.to_s.downcase}.join(' ')}"
+          [option.to_s, current.collect{|i| i.to_s.downcase}].flatten.compact
         end
       end
     end

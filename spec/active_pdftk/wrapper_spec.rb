@@ -161,7 +161,7 @@ describe ActivePdftk::Wrapper do
             end
 
             it "should unpack the files" do
-              @call_output.should == Dir.tmpdir
+              @call_output.should be_a(StringIO)
 
               @example_expect.children(false).each do |file|
                 (Pathname.new(Dir.tmpdir) + file).should have_the_content_of(@example_expect + file)
@@ -251,32 +251,6 @@ describe ActivePdftk::Wrapper do
               else
                 @call_output.should == @output.path + '/pg_%04d.pdf'
                 fixtures_path('output').should look_like_the_same_pdf_as(@example_expect)
-              end
-            end
-          end
-
-          context "#to temporary directory", :if => output_type == :nil do
-            before(:each) do
-              @input = get_input(input_type, 'multi.pdf')
-              @input.rewind rescue nil # rewind if possible.
-            end
-
-            it "should file into single pages" do
-              @pdftk.burst(@input, :output => nil).should == Dir.tmpdir
-
-              @example_expect.children(false).each do |file|
-                (Pathname.new(Dir.tmpdir) + file).should look_like_the_same_pdf_as(@example_expect + file)
-                FileUtils.remove_file(Pathname.new(Dir.tmpdir) + file)
-              end
-            end
-
-            it "should put a file in the system tmpdir when no output location given but a page name format given" do
-              @pdftk.burst(@input, :output => 'page_%02d.pdf').should == 'page_%02d.pdf'
-
-              @example_expect.children(false).each do |file|
-                index = file.basename.to_s.match(/(\d+)/)[0].to_i
-                (Pathname.new(Dir.tmpdir) + ("page_%02d.pdf" % index)).should look_like_the_same_pdf_as(@example_expect + file)
-                FileUtils.remove_file(Pathname.new(Dir.tmpdir) + ("page_%02d.pdf" % index))
               end
             end
           end
