@@ -68,8 +68,8 @@ module ActivePdftk
     # @example
     #   cat([{:pdf => 'a.pdf', :pass => 'foo'}, {:pdf => 'b.pdf', :start => 1, :end => 'end', :orientation => 'N', :pages => 'even'}]) # will return +StringIO+ of a single PDF containing a.pdf and the even pages of b.pdf
     #   cat([{:pdf => 'a.pdf', :pass => 'foo'}, {:pdf => 'b.pdf', :start => 1, :end => 'end', :orientation => 'N', :pages => 'even'}], :output => 'c.pdf') # will write the same as above to c.pdf
-    def cat(ranges = [], options = {})
-      command_options = call_range_operation(:cat, ranges)
+    def cat(files = [], options = {})
+      command_options = { :input => files, :operation => { :cat => [] } }
       @call.pdftk(options.merge(command_options))
     end
 
@@ -122,7 +122,7 @@ module ActivePdftk
        command_options = call_multi_operation("background", template, background, options.delete(:multi))
        @call.pdftk(options.merge(command_options))
     end
-    
+
     # Similar to #background, however if the background file it is multiple pages it will apply each page of the background file to the corresponding page of the template.
     # If the template has more pages than the background file the last page of the background file will be repeated.
     # @param [String, File, Tempfile, StringIO] template is the file on which the form is based.

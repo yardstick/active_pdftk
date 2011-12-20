@@ -327,13 +327,8 @@ module ActivePdftk
     def build_input(args)
       out, i = [[], "input_pw",[]], "A"
       case args
-      when Hash
-        @input_file_map = {}
-        args.each do |file, pass|
-          out.first << "#{i.next!}=#{file}"
-          out.last << "#{i}=#{pass}" if pass
-          @input_file_map[file] = "#{i}"
-        end
+      when Array
+        out[0] = args
       when String
         out.first << args
       when File, Tempfile, StringIO
@@ -364,14 +359,7 @@ module ActivePdftk
       check_statement(abilities, operation.first)
       @operation_name = operation.first
       if [:cat, :shuffle].include?(operation.first)
-        if operation.last.nil? || operation.last.empty? || !operation.last.is_a?(Array)
-          raise(InvalidOptions, {:cmd => operation.first})
-        elsif operation.last.collect{|h| h[:pdf]}.uniq.size > 1 && (@input_file_map.nil? || @input_file_map.empty?)
-          raise MissingInput
-        else
-          ops = operation.last.collect {|range| build_range_option(range)}
-          [operation.first.to_s] + ops
-        end
+        %w(cat)
       else
         case operation.last
         when NilClass
